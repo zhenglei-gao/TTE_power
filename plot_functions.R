@@ -35,7 +35,7 @@ tte_plot_trial <- function ( # create plots to summarize the trial
   return(pl)
 }
 
-tte_sum_power <- function () { # create summary for trial
+tte_sum_trial <- function () { # create summary table for trial
   # Summary table with per visit:
   # n events
   # n dropouts
@@ -52,7 +52,7 @@ tte_plot_power <- function ( # create several plots to summarize the power analy
   pl <- list()
   # Plots:
   # - Kaplan-Meier with PI over simulations
-  
+  # - distribution of trial outcomes (% events in each trial, possibly split by visit)
   if (!is.null(pdf)) {
     pdf (file = pdf_file)
     for (i in seq(pl)) {
@@ -63,6 +63,6 @@ tte_plot_power <- function ( # create several plots to summarize the power analy
   return(pl)
 }
 
-tte_sum_power <- function () {
+tte_sum_power <- function () { # create summary table for power analysis
   return(summ)
 }

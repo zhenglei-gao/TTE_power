@@ -1,19 +1,19 @@
 ## Purpose: contains R-functions that form the main engine of the trial simulator
 ## Authors: Ron Keizer (ron.keizer@ucsf.edu), Rada Savic
 
+## Notes: perhaps some of this should be implemented in C++, to speed up computation
+
 require(plyr)
 
-tte_create_design <- function (
+tte_trial_design <- function (
     n_patients = 12000,
     n_arms = 4,
-    enrollment_design = enrollment_design_1,
+    enrollment_design = list(),
     max_individual_length = 18*30,                  # n days
     max_trial_length = 180,                         # n days
     visits = c(0, 30, 90, 120, 150, 180),           # visit times (days)
-    rate_event = c(0.035, 0.0525, 0.0525, 0.0525),  # per year
-    rate_dropout = c(0.1, 0.1, 0.1, 0.1),           # per year
-    rate_switch = c(0.1, 0.1, 0.1, 0.1)             # per year, assuming switch is random to another arm
-  ) {
+    patient_design = list()
+) {
     tte_design <- list()
     return(tte_design)
 }
@@ -27,6 +27,15 @@ tte_enrollment_design <- function ( ## Create an object describing the enrollmen
   ) { 
     enrollment <- list()
     return(enrollment)
+}
+
+tte_patient_design <- function ( ## Create an object describing the patient
+  hazard_event = 0.035,  # per year
+  hazard_dropout = 0.1,           # per year
+  hazard_switch = 0.1)             # per year, assuming switch is random to another arm
+) { 
+  enrollment <- list()
+  return(enrollment)
 }
   
 tte_sim_enrollment <- function (design) { # simulate enrollment, based on enrollment design

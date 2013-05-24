@@ -1,18 +1,36 @@
-\documentclass{article}
-
-\author{Ron Keizer, Rada Savic, France Mentr\'e}
+\documentclass[11pt]{report} 
 
 \begin{document}
-\SweaveOpts{concordance=TRUE}
+%\SweaveOpts{concordance=TRUE}
+\title{tte\_power package documentation}
+\author{Ron Keizer\\ \small{University of California, San Francisco}}
+\maketitle
 
-\section{Introduction}
+\section*{Introduction}
+This R module implements a power calculation for time-to-event (TTE) analyses, using trial simulations. The module is implemented to study perform an evaluation of power for a clinical trial implemented by the Bill \& Melinda Gates Foundation. In this trial, it is studied whether the use of different types of hormonal contraception (HC) increased the hazard rate of seroconversion (becoming HIV$^+$). There is some evidence that HC in fact may increase the seroconversion hazard, although reports so far are underpowered and inconclusive. Therefore, a clinical trial is intended to be implemented to provide conclusive evidence whether HC increased the hazard or not. 
 
-\section{Methods (general)}
+In this document the implementation of the power analysis engine will be explained using the trial described above as motivating example. The implementation of this module is aimed to be as generic and flexible as possible, and can be used for other clinical trial settings that are evaluated using TTE outcomes.
 
-\section{Methods (technical)}
+\section*{Methods}
+There are four \textit{designs} to be defined: \textit{patient}, \textit{enrollment}, \textit{trial}, and \textit{power}. These are all defined using a specific function, which will generate R list objects.
+\begin{description}
+  \item [Patient] Specifies the patient hazard rates (assuming constant):
+  \begin{description}
+    \item [hazard\_event] The rate at which the event of interest is occuring
+    \item [hazard\_dropout] The dropout rate
+    \item [hazard\_switch] The rate at which patients switch to a different arm
+  \end{description}
+  \item [Enrollment] Specifies the expected enrollment model
+  \item [Trial] Specifies the trial design, e.g. the number of arms, and the patients characteristics in each arm.
+  \item [Power] Specifies the power analysis, and e.g. the statistical test to be used.
+\end{description}
 
-\section{Results}
+\section*{Simulating a trial}
 
-\section{Conclusion}
+\section*{Running a power analysis}
+
+\section*{Conclusion}
+
+\section*{References}
 
 \end{document}
