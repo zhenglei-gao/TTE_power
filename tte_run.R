@@ -1,6 +1,12 @@
 ## Purpose: Run tte power analyses
 ## Authors: Ron Keizer (ron.keizer@ucsf.edu), Rada Savic
 
+## read in functions for cts engine and plotting
+## Will eventually be made into an R-module
+source ("cts_functions.R")   # the main simulation engine
+source ("power_functions.R") # the functions for the statistical test and power analysis
+source ("plot_functions.R")  # plotting & summarizing functions
+
 ## Create an object describing the enrollment
 patient_design_1 <- tte_patient_design (
   cont_covariates = list (
@@ -30,21 +36,28 @@ enrollment_design_1 <- tte_enrollment_design (
 sim_design_1 <- tte_create_design (
   n_patients = 12000,
   n_arms = 4,
+  control_arm = 1,                                # which arm is the control
   enrollment_design = enrollment_design_1,
   max_individual_length = 18*30,                  # n days
   max_trial_length = 180,                         # n days
+  visits = c(0, 30, 90, 120, 150, 180)            # visit times (days)
   rate_event = c(0.035, 0.0525, 0.0525, 0.0525),  # per year
   rate_dropout = c(0.1, 0.1, 0.1, 0.1),           # per year
-  rate_switch = c(0.1, 0.1, 0.1, 0.1)             # per year
+  rate_switch = c(0.1, 0.1, 0.1, 0.1)             # per year, assuming switch is random to another arm
 )
 
-## Run the analysis
-res_1   <- tte_power_do (sim_design1,
-                         nsim = 1000,
-                         max_tria) 
+## Run just one trial simulation, to check whether our design is correct
+trial_1 <- tte_run_trial (sim_design_1)
 
-## Make some informative plots
-plots_1 <- tte_power_plots()
+## Make plots and summary of the trial simulation
+plots_1 <- tte_plot_trial (trial_1)
+summ_1  <- tte_sum_trial (trial_1, format="text")
 
-## Summarize results in text/table format
-summary(tte_res_1, format="text")
+## Run the power analysis
+pow_1 <- tte_run_power (design = sim_design1, 
+                        test = c("log-rank"), # currently only log-rank test available
+                        n_sim = 1000) 
+
+## Make some informative plots and create text summary
+pow_plots_1 <- tte_plot_power (pow1)
+pow_summ_1  <- tte_sum_power (pow_1, format="text")
