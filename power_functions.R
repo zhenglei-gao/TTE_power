@@ -1,13 +1,14 @@
-tte_run_power <- function ( # run the power analysis, based on trial design and number of 
-  design,
-  test = c("log-rank"), # what tests to implement (can be multiple), currently only logrank available
-  n = 1000
+
+tte_sim_power <- function ( # run the power analysis, based on trial design and number of 
+  trial_design,
+  test = c("logrank"), # what tests to implement (can be multiple), currently only logrank available
+  n = 500
 ) { 
   if (n < 1) { 
     cat ("Set n to a valid number (i.e. >1)\n\n")
     return()
   } 
-  valid_tests <- c("log-rank")
+  valid_tests <- c("logrank")
   if (sum(test %in% valid_tests)) != length(valid_tests)) {
     cat (paste("Choose a valid test, valid options are: ", valid_tests, "\n\n",sep=""))
     return()
@@ -15,7 +16,7 @@ tte_run_power <- function ( # run the power analysis, based on trial design and 
   trial_res <- list()
   test_res <- list()
   for (i in 1:n) { # simulate n trials
-    trial_res[i] <- tte_run_trial (design)
+    trial_res[i] <- tte_sim_trial (trial_design)
     if (tte_log)
     test_res <- c(test_res, tte_log_rank_test (trial_res[i]))
   }

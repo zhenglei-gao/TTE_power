@@ -21,9 +21,9 @@ tte_arm_design <- function ( # hazards are defined for each arm
   n_patients = 3000,
   patient_design) {
   arm <- list(
-    "hazard_event" = 0.035,
-    "hazard_dropout"= 0.1,
-    "hazard_switch" = 0.1,
+    "hazard_event" = hazard_event,
+    "hazard_dropout"= hazard_dropout,
+    "hazard_switch" = hazard_switch,
     "n_patients" = n_patients,
     "patient_design" = patient_design
     )
@@ -52,38 +52,16 @@ tte_enrollment_design <- function (
   return(enrollment_design)
 }
 
-tte_sim_enrollment <- function ( ## Create an object describing the enrollment
-  arm_design = list(),
-  enrollment_design  = list() # enrollment rates in all arms (per day)
-) { 
-  rate <- enrollment_design$enrollment_rate
-  offsets <- -log(1-runif(100))/rate[1]  # sample from Poisson distribution
-  enrollment <- list()
-  for (i in seq(arm_design)) {
-    nam <- names(arm_design)[i]
-    enrollment[[nam]] <- (-log(1-runif(arm_design[[nam]]$n_patients))) / rate[i]  # sample from Poisson distribution
-    for (j in length(enrollment[[nam]]):2) {
-      enrollment[[nam]][j] <- sum(enrollment[[nam]][1:j])
-    }
-  }
-  return(enrollment)
-}
-
-tte_trial_design <- function (
-    arm_design = list(),
-    control_arm = 1, # which arm acts as control?
-    enrollment_design = list(),
-    max_individual_length = 18*30,                  # n days
-    max_trial_length = 180,                         # n days
-    visits = c(0, 30, 90, 120, 150, 180)           # visit times (days)
-    ) 
+tte_trial_design <- function (arm_design = list(),
+                              control_arm = 1, # which arm acts as control?
+                              enrollment_design = list(),
+                              visits = c(0, 30, 90, 120, 150, 180), # visit times (days)
+                              max_events = 572)          
   {
     tte_design <- list(
       "arm_design" = arm_design,
       "control_arm" = control_arm,
       "enrollment_design" = enrollment_design,
-      "max_individual_length" = max_individual_length,
-      "max_trial_length" = max_trial_length,
       "visits" = visits
       )
     return(tte_design)
@@ -108,7 +86,7 @@ tte_sim_patient <- function (patient_design,
   switched <- 0 
   for (i in 2:length(sim_p$time)) { # can't do apply since hazard might change over time
     dtime <- sim_p$time[i] - sim_p$time[i-1]
-    sim_p[i,2:4] <- (runif(3) < c(1-1*exp(-pat_haz * dtime/12)))*1    
+    sim_p[i,2:4] <- (runif(3) < c(1-1*exp(-pat_haz * dtime/365)))*1    
     sim_p[i,5] <- arm_current
     if (sim_p[i,]$dropout == 1) {
       sim_p <- sim_p[1:i,]
@@ -130,20 +108,73 @@ tte_sim_patient <- function (patient_design,
   return(sim_p)  
 }
 
-tte_sim_enrollment <- function (trial_design) { # simulate enrollment, based on enrollment design. Generate offsets for patient start per trial
-  sim_e <- list()
-  return(sim_e)  
+## Create an object describing the enrollment
+tte_sim_enrollment <- function (arm_design = list(),
+                                enrollment_design  = list() # enrollment rates in all arms (per day)
+) { 
+  rate <- enrollment_design$enrollment_rate
+  offsets <- -log(1-runif(100))/rate[1]  # sample from Poisson distribution
+  enrollment <- list()
+  for (i in seq(arm_design)) {
+    nam <- names(arm_design)[i]
+    enrollment[[nam]] <- (-log(1-runif(arm_design[[nam]]$n_patients))) / rate[i]  # sample from Poisson distribution
+    for (j in length(enrollment[[nam]]):2) {
+      enrollment[[nam]][j] <- sum(enrollment[[nam]][1:j])
+    }
+  }
+  return(enrollment)
 }
 
-tte_sim_trial <- function (design) { # run a single trial, based on trial design
-  res <- list()
-  return(res)
+tte_sim_trial <- function (trial_design) {
+  # simulate the enrollment of patients
+  enrollment <- tte_sim_enrollment (trial_design$arm_design, trial_design$enrollment_design)
+  
+  # Simulate the trial
+  arm_names <- names(trial_design$arm_design)
+  dat <- c()
+  for (i in seq(arm_names)) {
+    for (j in 1:arm_design[[arm_names[i]]]$n_patients) {    
+      dat <- rbind(dat, 
+                   cbind(arm_name=arm_names[i], patient=j, 
+                         tte_sim_patient (patient_design = arm_design[[arm_names[i]]]$patient_design,  
+                                          trial_design = trial_design,  
+                                          offset = enrollment[[arm_names[i]]][j] ) 
+                   ))
+    }
+  }
+  return(dat)
 }
 
-tte_sim_power <- function (
-  design,
-  n = 1000) {  # run a power analysis, based on trial design
-  pow <- list()
-  return(pow)
+extract_event_data <- function (sim_data, 
+                                until_time = 365*2) {
+  get_event_time <- function (d) {
+    event <- 0 # censored
+    last <- d[d$time == max(d$time),] 
+    arm <- last$arm
+    time <- last$time
+    if (last$event == 1) {
+      event <- 1
+      prev <- tail(d[d$time < max(d$time),],1) 
+      time <- mean(c(prev$time,last$time))
+    }
+    return(
+      c(time, event, arm)
+    )
+  }
+  time_after_start <- function(d) {
+    d$time <- d$time - min(d$time)
+    return(d)
+  }
+  sim_data <- sim_data[sim_data$time <= until_time,]
+  sim_data$grp <- paste(sim_data$arm_name, sim_data$patient, sep="")
+  sim_data <- ddply (sim_data, "grp", time_after_start)
+  event_dat <- ddply (sim_data, "grp", get_event_time)
+  colnames(event_dat) <- c("patient", "time","event","arm")
+  event_dat$arm <- factor(event_dat$arm)
+  return(event_dat)  
 }
+
+sum_events <- function(d) { sum (d$event[d$event==1]) }
+sum_dropout <- function(d) { sum (d$dropout[d$dropout==1]) }
+as.num <- function(x) {as.numeric(as.character(x))}
 

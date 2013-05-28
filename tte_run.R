@@ -6,6 +6,8 @@
 
 ## read in functions for cts engine and plotting
 ## Will eventually be made into an R-module
+require(plyr)
+require(survival)
 source ("cts_functions.R")   # the main simulation engine
 source ("power_functions.R") # the functions for the statistical test and power analysis
 source ("plot_functions.R")  # plotting & summarizing functions
@@ -18,60 +20,53 @@ pat4 <- tte_patient_design (arm_start = 4)
 
 ## Create an object describing the enrollment
 enrollment_design <- tte_enrollment_design (
-  enrollment_rate  = c(4,4,4,4)  # describe enrollment rates in all arms (per day)
+  enrollment_rate  = c(10, 10, 10, 10)  # describe enrollment rates in all arms (per day)
 )
 
 arm_design <- list (
-  "control" = tte_arm_design (hazard_event = 0.035, hazard_dropout = 0.1, hazard_switch = 0.1, n_patients=300, patient_design = pat1),
-  "hc1" = tte_arm_design (hazard_event = 0.0525, hazard_dropout = 0.1, hazard_switch = 0.1, n_patients=300, patient_design = pat1),
-  "hc2" = tte_arm_design (hazard_event = 0.0525, hazard_dropout = 0.1, hazard_switch = 0.1, n_patients=300, patient_design = pat1),
-  "hc3" = tte_arm_design (hazard_event = 0.0525, hazard_dropout = 0.1, hazard_switch = 0.1, n_patients=300, patient_design = pat1)
+  "control" = tte_arm_design (hazard_event = 0.035, hazard_dropout = 0.1, hazard_switch = 0.1, n_patients=1000, patient_design = pat1),
+  "hc1" = tte_arm_design (hazard_event = 0.0525, hazard_dropout = 0.1, hazard_switch = 0.1, n_patients=1000, patient_design = pat2),
+  "hc2" = tte_arm_design (hazard_event = 0.0525, hazard_dropout = 0.1, hazard_switch = 0.1, n_patients=1000, patient_design = pat3),
+  "hc3" = tte_arm_design (hazard_event = 0.0525, hazard_dropout = 0.1, hazard_switch = 0.1, n_patients=1000, patient_design = pat4)
 )
 
 trial_design <- tte_trial_design (
   arm_design = arm_design,
   control_arm = 1,                                # which arm is the control
   enrollment_design = enrollment_design,
-  max_individual_length = 18*30,                  # n days
-  max_trial_length = 180,                         # n days
-  visits = c(0, 30, 90, 120, 150, 180)            # visit times (days)
+  visits = c(0, 90, 180, 270, 360, 450, 540),      # visit times (days)
+  max_events = 572  # not implemented yet
 )
 
 ## simulate trial
-tte_sim_trial <- function (trial_design) {
-  # simulate the enrollment of patients
-  enrollment <- tte_sim_enrollment (trial_design$arm_design, trial_design$enrollment_design)
-
-  # Simulate the trial
-  arm_names <- names(trial_design$arm_design)
-  dat <- c()
-  for (i in seq(arm_names)) {
-    for (j in 1:arm_design[[arm_names[i]]]$n_patients) {    
-      dat <- rbind(dat, 
-                 cbind(arm_names[i], j, 
-                       tte_sim_patient (patient_design = arm_design[[arm_names[i]]]$patient_design,  
-                                        trial_design = trial_design,  
-                                        offset = enrollment[[arm_names[i]]][j] ) 
-      ))
-    }
-  }
-  return(dat)
-}
-
 dat <- tte_sim_trial (trial_design)
 
-## Run just one trial simulation, to check whether our design is correct
-trial_res <- tte_sim_trial (trial_des)
+## summarize 
+ddply(dat, "arm", sum_events) # number of events
+ddply(dat, "arm", sum_dropout) # number of dropouts
 
-## Make plots and summary of the trial simulation
-plots_1 <- tte_plot_trial (trial_1)
-summ_1  <- tte_sum_trial (trial_1, format="text")
+## do logrank test:
+## first extract data in right form from the simulation object
+event_dat <- extract_event_data(dat, until_time=540)
+
+## then calculate the kaplan meier estimators and make a plot
+fit <- survfit(Surv(time, event) ~ arm, data=event_dat)
+plot(fit, 
+     mark.time=TRUE, 
+     conf.int=FALSE,
+     xlab = 'Time (days)', 
+     col= c(1,2,3,4),
+     ylab = 'Seroconversion probability', 
+     ylim=c(0.8,1))
+
+## do the logrank test
+survdiff(Surv(time, event) ~ arm, data=event_dat)
+survdiff(Surv(time, event) ~ arm, data=event_dat[event_dat$arm %in% c(1,2),])
+survdiff(Surv(time, event) ~ arm, data=event_dat[event_dat$arm %in% c(1,3),])
+survdiff(Surv(time, event) ~ arm, data=event_dat[event_dat$arm %in% c(1,4),])
 
 ## Run the power analysis
-pow_1 <- tte_run_power (design = sim_design1, 
-                        test = c("log-rank"), # currently only log-rank test available
-                        n_sim = 1000) 
+pow_1 <- tte_run_power (design = trial_design, 
+                        test = c("logrank"), # currently only logrank test available
+                        n_sim = 100) 
 
-## Make some informative plots and create text summary
-pow_plots_1 <- tte_plot_power (pow1)
-pow_summ_1  <- tte_sum_power (pow_1, format="text")
