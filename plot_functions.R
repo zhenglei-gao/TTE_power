@@ -1,5 +1,47 @@
 require(ggplot2)
 
+extract_enrollment_data <- function (dat) {
+  extract_enrollment_function <- function (d) {
+    return(c(min(d$time), d$arm[1]))
+  }
+  dat$grp <- paste(dat$arm_name, dat$patient, sep="_")
+  enr_dat <- ddply (dat, "grp", extract_enrollment_function)[-1]
+  colnames(enr_dat) <- c("time","arm")
+  enr_dat <- enr_dat[order(enr_dat$arm, enr_dat$time),]
+  enr_dat$event <- 1
+  return(enr_dat)  
+}
+
+gg_surv_plot <- function (fit, arms=NULL) {
+  gg_format_survfit <- function (d) {
+    baseline <- d[d$time == min(d$time),][1,]
+    baseline$time <- 0
+    baseline$surv <- 1
+    baseline$n_event <- 0
+    newdat <- rbind(baseline, d) 
+    step_points <- newdat[1:(length(newdat[,1])-1),]
+    step_points$time <- newdat[2:length(newdat[,1]),]$time
+    ggdat <- rbind(newdat, step_points)
+    ggdat <- ggdat[order(ggdat$time, rev(ggdat$surv)),]
+    return (ggdat)
+  }
+  pl_dat <- ddply (data.frame(cbind(time = fit$time, 
+                                    arm = rep(1:length(fit$strata), as.num(fit$strata)), 
+                                    n_event=fit$n.event, 
+                                    surv=fit$surv)), 
+                   "arm", gg_format_survfit)
+  #if (is.null(arms)) {
+  #  arms <- unique(pl_dat$arm)
+  #}
+  pl_dat$arm <- factor(pl_dat$arm, labels=arms)
+  ggplot(pl_dat, aes(x=time, y=surv, colour=arm)) + 
+    geom_line() + 
+    ylab ("HIV negative") +
+    xlab ("Time (days)") +
+    ylim (c(0.8, 1)) +
+    scale_colour_brewer("", palette="Set1")
+}
+
 tte_plot_trial <- function ( # create plots to summarize the trial
     tte_trial,
     pdf_file = NULL

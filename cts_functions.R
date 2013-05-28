@@ -56,13 +56,14 @@ tte_trial_design <- function (arm_design = list(),
                               control_arm = 1, # which arm acts as control?
                               enrollment_design = list(),
                               visits = c(0, 30, 90, 120, 150, 180), # visit times (days)
-                              max_events = 572)          
+                              max_events = NULL)          
   {
     tte_design <- list(
       "arm_design" = arm_design,
       "control_arm" = control_arm,
       "enrollment_design" = enrollment_design,
-      "visits" = visits
+      "visits" = visits,
+      "max_events" = max_events
       )
     return(tte_design)
 }
@@ -75,7 +76,7 @@ tte_sim_patient <- function (patient_design,
                              trial_design,
                              offset = 0
                              ) { 
-  sim_p <- data.frame(cbind("time" = trial_design$visits, "event" = 0, "dropout" = 0, "switch" = 0, "arm" = patient_design$arm_start)) 
+  sim_p <- data.frame(cbind("time" = trial_design$visits, "event" = 0, "dropout" = 0, "switch" = 0, "arm" = patient_design$arm_start, "offset"=offset)) 
   if (length(sim_p$time) < 2) {
     cat ("Specify a trial design with at least two visits!\n\n")
     return()    
@@ -142,15 +143,30 @@ tte_sim_trial <- function (trial_design) {
                    ))
     }
   }
+  # remove patient enrolled after the max_events were reached:
+  if (!is.null(max_events)) {
+    dat <- apply_stopping_criterion(dat, max_events)
+  }
   return(dat)
 }
 
+apply_stopping_criterion <- function (sim_data, max_events = 572) {
+  event_times <- sim_data[sim_data$event == 1,]$time
+  if (max_events < length(event_times)) {
+    max_enroll_time <- event_times[order(event_times)][max_events]
+    sim_data <- sim_data[sim_data$offset < max_enroll_time,]
+    ## implement stopping criterion 
+  }
+  return(sim_data)
+}
+
 extract_event_data <- function (sim_data, 
-                                until_time = 365*2) {
+                                until_time = 365*2,
+                                control_arm = 1) {
   get_event_time <- function (d) {
     event <- 0 # censored
     last <- d[d$time == max(d$time),] 
-    arm <- last$arm
+    arm <- d[1,]$arm # intention-to-treat, don't use last arm!
     time <- last$time
     if (last$event == 1) {
       event <- 1
@@ -171,6 +187,8 @@ extract_event_data <- function (sim_data,
   event_dat <- ddply (sim_data, "grp", get_event_time)
   colnames(event_dat) <- c("patient", "time","event","arm")
   event_dat$arm <- factor(event_dat$arm)
+  event_dat$arm_type <- "test"
+  event_dat[event_dat$arm==control_arm,]$arm_type <- "control"
   return(event_dat)  
 }
 
