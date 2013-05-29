@@ -22,10 +22,12 @@ gg_surv_plot <- function (fit, arms=NULL, y_val = "surv",
     baseline$lower <- 1
     baseline$n.event <- 0
     newdat <- rbind(baseline, d) 
+    newdat$step <- 0
     step_points <- newdat[1:(length(newdat[,1])-1),]
     step_points$time <- newdat[2:length(newdat[,1]),]$time
+    step_points$step <- 1
     ggdat <- rbind(newdat, step_points)
-    ggdat <- ggdat[order(ggdat$time, rev(ggdat$surv)),]
+    ggdat <- ggdat[order(ggdat$time, rev(ggdat$step)),]
     return (ggdat)
   }
   dat <- data.frame(cbind(time = fit$time, 

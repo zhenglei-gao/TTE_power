@@ -36,7 +36,7 @@ trial_design <- tte_trial_design (
 )
 
 ## simulate trial
-registerDoMC(1) # somehow multicore is not faster. However foreach seems faster than for-loop.
+#registerDoMC(1) # somehow multicore is not faster. However foreach seems faster than for-loop.
 dat <- tte_sim_trial (trial_design)
 dat_stop <- apply_stopping_criterion(dat, max_events=572)
 
@@ -52,6 +52,10 @@ event_dat_stop <- extract_event_data(dat_stop)
 ## then calculate the kaplan meier estimators and make a plot
 fit <- survfit(Surv(time, event) ~ arm, data=event_dat)
 gg_surv_plot (fit, arms = c("Control", "HC 1", "HC 2", "HC 3"), pct=TRUE, 
+              show_ci=c(1,0,0,0)) + ylab ("% HIV negative") + ylim (c(90,100))
+
+fit_stop <- survfit(Surv(time, event) ~ arm, data=event_dat_stop)
+gg_surv_plot (fit_stop, arms = c("Control", "HC 1", "HC 2", "HC 3"), pct=TRUE, 
               show_ci=c(1,0,0,0)) + ylab ("% HIV negative") + ylim (c(90,100))
 
 ## Make a plot of enrollment
