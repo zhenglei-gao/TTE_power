@@ -12,12 +12,15 @@ extract_enrollment_data <- function (dat) {
   return(enr_dat)  
 }
 
-gg_surv_plot <- function (fit, arms=NULL) {
+gg_surv_plot <- function (fit, arms=NULL, y_val = "surv", 
+                          reverse=FALSE, pct=TRUE, show_ci=0) {
   gg_format_survfit <- function (d) {
     baseline <- d[d$time == min(d$time),][1,]
     baseline$time <- 0
     baseline$surv <- 1
-    baseline$n_event <- 0
+    baseline$upper <- 1
+    baseline$lower <- 1
+    baseline$n.event <- 0
     newdat <- rbind(baseline, d) 
     step_points <- newdat[1:(length(newdat[,1])-1),]
     step_points$time <- newdat[2:length(newdat[,1]),]$time
@@ -25,21 +28,44 @@ gg_surv_plot <- function (fit, arms=NULL) {
     ggdat <- ggdat[order(ggdat$time, rev(ggdat$surv)),]
     return (ggdat)
   }
-  pl_dat <- ddply (data.frame(cbind(time = fit$time, 
-                                    arm = rep(1:length(fit$strata), as.num(fit$strata)), 
-                                    n_event=fit$n.event, 
-                                    surv=fit$surv)), 
-                   "arm", gg_format_survfit)
-  #if (is.null(arms)) {
-  #  arms <- unique(pl_dat$arm)
-  #}
-  pl_dat$arm <- factor(pl_dat$arm, labels=arms)
-  ggplot(pl_dat, aes(x=time, y=surv, colour=arm)) + 
-    geom_line() + 
-    ylab ("HIV negative") +
-    xlab ("Time (days)") +
-    ylim (c(0.8, 1)) +
-    scale_colour_brewer("", palette="Set1")
+  dat <- data.frame(cbind(time = fit$time, 
+                          arm = rep(1:length(fit$strata), as.num(fit$strata)), 
+                          n.event=fit$n.event, 
+                          surv=fit$surv,
+                          upper=fit$upper, 
+                          lower=fit$lower))
+  if (y_val == "surv") {
+    pl_dat <- ddply (dat, "arm", gg_format_survfit)
+  } else {
+    pl_dat <- dat
+  }
+  if (is.null(arms)) {
+    arms <- unique(pl_dat$arm)
+  }
+  pl_dat$arm_name <- factor(pl_dat$arm, labels=arms)
+  pl_dat$y_val <- pl_dat[[y_val]]
+  if (reverse) {pl_dat$y_val <- 1-pl_dat$y_val}
+  if (pct) {
+    pl_dat$y_val <- pl_dat$y_val*100
+    pl_dat$upper <- pl_dat$upper*100
+    pl_dat$lower <- pl_dat$lower*100
+  }
+  pl <- ggplot(pl_dat, aes(x=time, y=y_val, colour=arm_name, group=arm_name)) + 
+      geom_line() + 
+      xlab ("Time (days)") +
+      scale_colour_brewer("", palette="Set1") 
+  if (length(show_ci) == 1) {
+    if (show_ci) {
+      pl <- pl + geom_ribbon(aes(ymin=lower, ymax=upper, group=arm_name), colour=NA, fill=rgb(0.6,0.6,0.6,0.4))
+    }
+  } else {
+    for (i in seq(show_ci)) { # show ci for 1 or more arms
+      if (show_ci[i]) {
+        pl <- pl + geom_ribbon(data=pl_dat[pl_dat$arm==i,], aes(x=time, ymin=lower, ymax=upper), colour=NA, fill=rgb(0.6,0.6,0.6,0.4))
+      }
+    }
+  }
+  return(pl)
 }
 
 tte_plot_trial <- function ( # create plots to summarize the trial

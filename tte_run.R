@@ -51,18 +51,13 @@ event_dat <- extract_event_data(dat)
 
 ## then calculate the kaplan meier estimators and make a plot
 fit <- survfit(Surv(time, event) ~ arm, data=event_dat)
-gg_surv_plot (fit, arms = c("Control", "HC 1", "HC 2", "HC 3"))
+gg_surv_plot (fit, arms = c("Control", "HC 1", "HC 2", "HC 3"), pct=TRUE, 
+              show_ci=c(1,0,0,0)) + ylab ("% HIV negative") + ylim (c(90,100))
 
 ## Make a plot of enrollment
 enr_dat <- extract_enrollment_data(dat)
 fit_enr <- survfit(Surv(time, event) ~ arm, data=enr_dat)
-plot(fit_enr, 
-     mark.time=TRUE, 
-     conf.int=FALSE,
-     xlab = 'Time (days)', 
-     col= c(1,2,3,4), 
-     ylab = 'To be enrolled')
-
+gg_surv_plot(fit_enr, arms=c("Control", "HC 1", "HC 2", "HC 3"), y_val="surv", reverse=TRUE, pct=TRUE) + ylab ("% enrollment per arm") 
 
 ## do the logrank test
 ## first approach: merge the test arms
@@ -70,14 +65,9 @@ t1 <- survdiff(Surv(time, event) ~ arm_type, data=event_dat) # merged test-arms
 
 ## second approach: test arms separately vs control
 t2a <- survdiff(Surv(time, event) ~ arm, data=event_dat[event_dat$arm %in% c(1,2),])
-t2b <-survdiff(Surv(time, event) ~ arm, data=event_dat[event_dat$arm %in% c(1,3),])
-t2c <-survdiff(Surv(time, event) ~ arm, data=event_dat[event_dat$arm %in% c(1,4),])
+t2b <- survdiff(Surv(time, event) ~ arm, data=event_dat[event_dat$arm %in% c(1,3),])
+t2c <- survdiff(Surv(time, event) ~ arm, data=event_dat[event_dat$arm %in% c(1,4),])
 
 ## calculate p-values
 p_vals <- 1-c(pchisq(t1$chisq, 1), pchisq(t2a$chisq, 1), pchisq(t2b$chisq, 1), pchisq(t2c$chisq, 1))
-            
-## Run the power analysis
-pow_1 <- tte_run_power (design = trial_design, 
-                        test = c("logrank"), # currently only logrank test available
-                        n_sim = 100) 
-
+    
