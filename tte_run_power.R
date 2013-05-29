@@ -4,6 +4,8 @@ source ("cts_functions.R")   # the main simulation engine
 source ("power_functions.R") # the functions for the statistical test and power analysis
 source ("plot_functions.R")  # plotting & summarizing functions
 
+registerDoMC(4)
+
 ## patient object
 pat1 <- tte_patient_design (arm_start = 1) # control
 pat2 <- tte_patient_design (arm_start = 2) # hc1
@@ -30,5 +32,5 @@ trial_design <- tte_trial_design (
   max_events = NULL  # stopping criterion, can be implemented later as well
 )
 
-tte_run_power_analysis (trial_design, n_sim, max_events=572, name="scen1")
+tte_run_power_analysis (trial_design, n_sim, max_events=572, name="scen1b")
 

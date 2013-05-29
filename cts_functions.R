@@ -139,18 +139,16 @@ tte_sim_trial <- function (trial_design) {
   
   # Simulate the trial
   arm_names <- names(trial_design$arm_design)
-  dat <- c()
-  for (i in seq(arm_names)) {
+  dat <- foreach (i=seq(arm_names), .combine=rbind) %dopar% {
+    tmp <- c()
     for (j in 1:arm_design[[arm_names[i]]]$n_patients) {    
-#     dat <- foreach (j=1:arm_design[[arm_names[i]]]$n_patients, .combine=rbind) %dopar% {
-      dat <- rbind(dat, 
-#        return(
-                   cbind(arm_name=arm_names[i], patient=j, 
+        tmp <- rbind(tmp, cbind(arm_name=arm_names[i], patient=j, 
                          tte_sim_patient (patient_design = arm_design[[arm_names[i]]]$patient_design,  
                                           trial_design = trial_design,  
                                           offset = enrollment[[arm_names[i]]][j] ) 
                    ))
     }
+    return(tmp)
   }
   # remove patient enrolled after the max_events were reached:
   if (!is.null(trial_design$max_events)) {

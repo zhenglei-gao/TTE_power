@@ -32,17 +32,3 @@ tte_run_power_analysis <- function (trial_design, n_sim, max_events=572, name="s
   }
 }
 
-calc_power <- function (csv) {
-  # non-parametric and parametric (assuming normality of log(p)) power estimate
-  power_stop <- list (
-    "test1_nonpar" = sum(csv[,1] < 0.05) / length(csv[,1]),
-    "test2_nonpar" = sum(apply((csv[,c(2:4)] < 0.017), 1, sum) == 3) / length(csv[,2]), # any of the 3 tests is positive
-    "test1_par" = pnorm(log(0.05), mean(log(csv[,1])), sd(log(csv[,1]))),
-    "test2_nonpar" = pnorm(log(0.017), mean(log(csv[,2])), sd(log(csv[,2]))) *
-      pnorm(log(0.017), mean(log(csv[,3])), sd(log(csv[,3]))) *
-      pnorm(log(0.017), mean(log(csv[,4])), sd(log(csv[,4]))) 
-  )
-  return(power_stop)
-}
-
-
