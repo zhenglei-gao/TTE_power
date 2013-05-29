@@ -1,9 +1,4 @@
-## Purpose     : Run tte power analyses
-## Authors     : Ron Keizer (ron.keizer@ucsf.edu), Rada Savic
-## Description : This script is an example of how to set up a power analysis
-##               It will walk through the required steps, and create the 
-##               plots and summaries.
-##               The source files will eventually be made into an R-module
+## implement the power analysis
 
 source ("cts_functions.R")   # the main simulation engine
 source ("power_functions.R") # the functions for the statistical test and power analysis
@@ -35,33 +30,5 @@ trial_design <- tte_trial_design (
   max_events = NULL  # stopping criterion, can be implemented later as well
 )
 
-## simulate trial
-registerDoMC(1) # somehow multicore is not faster. However foreach seems faster than for-loop.
-dat <- tte_sim_trial (trial_design)
-dat_stop <- apply_stopping_criterion(dat, max_events=572)
+tte_run_power_analysis (trial_design, n_sim, max_events=572, name="scen1")
 
-## summarize 
-ddply(dat, "arm", sum_events) # number of events
-ddply(dat, "arm", sum_dropout) # number of dropouts
-
-## do logrank test:
-## first extract data in right form from the simulation object
-event_dat <- extract_event_data(dat)
-event_dat_stop <- extract_event_data(dat_stop)
-
-## then calculate the kaplan meier estimators and make a plot
-fit <- survfit(Surv(time, event) ~ arm, data=event_dat)
-gg_surv_plot (fit, arms = c("Control", "HC 1", "HC 2", "HC 3"), pct=TRUE, 
-              show_ci=c(1,0,0,0)) + ylab ("% HIV negative") + ylim (c(90,100))
-
-## Make a plot of enrollment
-enr_dat <- extract_enrollment_data(dat)
-fit_enr <- survfit(Surv(time, event) ~ arm, data=enr_dat)
-gg_surv_plot(fit_enr, arms=c("Control", "HC 1", "HC 2", "HC 3"), y_val="surv", reverse=TRUE, pct=TRUE) + ylab ("% enrollment per arm") 
-
-## do the logrank test
-test_res <- do_tests(event_dat)
-test_res_stop <- do_tests(event_dat_stop)
-
-
-    

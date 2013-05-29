@@ -3,7 +3,12 @@
 
 ## Notes: perhaps some of this should be implemented in C++, to speed up computation
 
-require(plyr)
+require("plyr")
+require("survival")
+require("iterators")
+require("foreach")
+require("doMC")
+registerDoMC(4)
 
 ###########################################################################
 ## Functions to define enrollmenet, patients, trials, power analysis
@@ -89,20 +94,22 @@ tte_sim_patient <- function (patient_design,
     dtime <- sim_p$time[i] - sim_p$time[i-1]
     sim_p[i,2:4] <- (runif(3) < c(1-1*exp(-pat_haz * dtime/365)))*1    
     sim_p[i,5] <- arm_current
-    if (sim_p[i,]$dropout == 1) {
-      sim_p <- sim_p[1:i,]
-      sim_p[i:length(sim_p$time), c(2,4)] <- -1
-      break
-    }
-    if (sim_p[i,]$event == 1) {
-      sim_p <- sim_p[1:i,]
-      sim_p[i:length(sim_p$time), c(3,4)] <- -1
-      break
-    }
-    if ((sim_p[i,]$switch == 1)&&(switched == 0)) {
-      arm_current <- arms[-arm_current][round(runif(1)*length(arms[-arm_current])+0.5)] # switch to another arm     
-      pat_haz <- c(unlist(trial_design$arm_design[arm_current])[1:3])
-      switched <- 1
+    if (sum(sim_p[i,2:4]) > 0) { # something happened
+      if (sim_p[i,]$dropout == 1) {
+        sim_p <- sim_p[1:i,]
+        sim_p[i:length(sim_p$time), c(2,4)] <- -1
+        break
+      }
+      if (sim_p[i,]$event == 1) {
+        sim_p <- sim_p[1:i,]
+        sim_p[i:length(sim_p$time), c(3,4)] <- -1
+        break
+      }
+      if ((sim_p[i,]$switch == 1)&&(switched == 0)) {
+        arm_current <- arms[-arm_current][round(runif(1)*length(arms[-arm_current])+0.5)] # switch to another arm     
+        pat_haz <- c(unlist(trial_design$arm_design[arm_current])[1:3])
+        switched <- 1
+      }
     }
   }
   sim_p$time <- sim_p$time + offset
@@ -135,7 +142,9 @@ tte_sim_trial <- function (trial_design) {
   dat <- c()
   for (i in seq(arm_names)) {
     for (j in 1:arm_design[[arm_names[i]]]$n_patients) {    
+#     dat <- foreach (j=1:arm_design[[arm_names[i]]]$n_patients, .combine=rbind) %dopar% {
       dat <- rbind(dat, 
+#        return(
                    cbind(arm_name=arm_names[i], patient=j, 
                          tte_sim_patient (patient_design = arm_design[[arm_names[i]]]$patient_design,  
                                           trial_design = trial_design,  
@@ -144,8 +153,8 @@ tte_sim_trial <- function (trial_design) {
     }
   }
   # remove patient enrolled after the max_events were reached:
-  if (!is.null(max_events)) {
-    dat <- apply_stopping_criterion(dat, max_events)
+  if (!is.null(trial_design$max_events)) {
+    dat <- apply_stopping_criterion(dat, trial_design$max_events)
   }
   return(dat)
 }
@@ -153,9 +162,9 @@ tte_sim_trial <- function (trial_design) {
 apply_stopping_criterion <- function (sim_data, max_events = 572) {
   event_times <- sim_data[sim_data$event == 1,]$time
   if (max_events < length(event_times)) {
-    max_enroll_time <- event_times[order(event_times)][max_events]
-    sim_data <- sim_data[sim_data$offset < max_enroll_time,]
-    ## implement stopping criterion 
+    max_event_time <- event_times[order(event_times)][max_events]
+    #sim_data <- sim_data[sim_data$offset < max_event_time,]
+    sim_data <- sim_data[sim_data$time < max_event_time,] # throw away all data after the nth event has been reached
   }
   return(sim_data)
 }
