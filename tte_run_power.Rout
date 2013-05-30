@@ -1,0 +1,114 @@
+
+R version 3.0.1 (2013-05-16) -- "Good Sport"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ## implement the power analysis
+> 
+> source ("cts_functions.R")   # the main simulation engine
+Loading required package: plyr
+Loading required package: survival
+Loading required package: splines
+Loading required package: iterators
+Loading required package: foreach
+Loading required package: doMC
+Loading required package: parallel
+> source ("power_functions.R") # the functions for the statistical test and power analysis
+> source ("plot_functions.R")  # plotting & summarizing functions
+Loading required package: ggplot2
+> 
+> ## patient object
+> pat1 <- tte_patient_design (arm_start = 1) # control
+> pat2 <- tte_patient_design (arm_start = 2) # hc1
+> pat3 <- tte_patient_design (arm_start = 3) # hc2
+> pat4 <- tte_patient_design (arm_start = 4) # hc3
+> 
+> ## Create an object describing the enrollment
+> enrollment_design <- tte_enrollment_design ( 
++   enrollment_rate  = rep( 3000/(365/2), 4)   # enrollment rates in all arms (per day); all patients enrolled in 6 months
++ )
+> 
+> arm_design <- list (
++   "control" = tte_arm_design (hazard_event = 0.035, hazard_dropout = 0.1/1.5, hazard_switch = 0.1/1.5, n_patients=3000, patient_design = pat1),
++   "hc1" = tte_arm_design (hazard_event = 0.0525, hazard_dropout = 0.1/1.5, hazard_switch = 0.1/1.5, n_patients=3000, patient_design = pat2),
++   "hc2" = tte_arm_design (hazard_event = 0.0525, hazard_dropout = 0.1/1.5, hazard_switch = 0.1/1.5, n_patients=3000, patient_design = pat3),
++   "hc3" = tte_arm_design (hazard_event = 0.0525, hazard_dropout = 0.1/1.5, hazard_switch = 0.1/1.5, n_patients=3000, patient_design = pat4)
++ )
+> 
+> trial_design <- tte_trial_design (
++   arm_design = arm_design,
++   control_arm = 1,                                # which arm is the control
++   enrollment_design = enrollment_design,
++   visits = c(0, 90, 180, 270, 360, 450, 540),      # visit times (days)
++   max_events = NULL  # stopping criterion, can be implemented later as well
++ )
+> 
+> tte_run_power_analysis (trial_design, n_sim, max_events=572, name="scen1")
+Simulation: 1
+Simulation: 2
+Simulation: 3
+Simulation: 4
+Simulation: 5
+Simulation: 6
+Simulation: 7
+Simulation: 8
+Simulation: 9
+Simulation: 10
+Simulation: 11
+Simulation: 12
+Simulation: 13
+Simulation: 14
+Simulation: 15
+Simulation: 16
+Simulation: 17
+Simulation: 18
+Simulation: 19
+Simulation: 20
+Simulation: 21
+Simulation: 22
+Simulation: 23
+Simulation: 24
+Simulation: 25
+Simulation: 26
+Simulation: 27
+Simulation: 28
+Simulation: 29
+Simulation: 30
+Simulation: 31
+Simulation: 32
+Simulation: 33
+Simulation: 34
+Simulation: 35
+Simulation: 36
+Simulation: 37
+Simulation: 38
+Simulation: 39
+Simulation: 40
+Simulation: 41
+Simulation: 42
+Simulation: 43
+Simulation: 44
+Simulation: 45
+Simulation: 46
+Simulation: 47
+Simulation: 48
+Simulation: 49
+Simulation: 50
+Simulation: 51
+Simulation: 52
+Simulation: 53
+Killed
