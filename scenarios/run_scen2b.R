@@ -19,10 +19,10 @@ enrollment_design <- tte_enrollment_design (
 )
 
 arm_design <- list (
-  "control" = tte_arm_design (hazard_event = 0.035, hazard_dropout = 0.2/1.5, hazard_switch = 0.1/1.5, n_patients=3000, patient_design = pat1),
-  "hc1" = tte_arm_design (hazard_event = 0.0525, hazard_dropout = 0.2/1.5, hazard_switch = 0.1/1.5, n_patients=3000, patient_design = pat2),
-  "hc2" = tte_arm_design (hazard_event = 0.0525, hazard_dropout = 0.2/1.5, hazard_switch = 0.1/1.5, n_patients=3000, patient_design = pat3),
-  "hc3" = tte_arm_design (hazard_event = 0.0525, hazard_dropout = 0.2/1.5, hazard_switch = 0.1/1.5, n_patients=3000, patient_design = pat4)
+  "control" = tte_arm_design (hazard_event = 0.035, hazard_dropout = 0.05/1.5, hazard_switch = 0.1/1.5, n_patients=3000, patient_design = pat1),
+  "hc1" = tte_arm_design (hazard_event = 0.0525, hazard_dropout = 0.05/1.5, hazard_switch = 0.1/1.5, n_patients=3000, patient_design = pat2),
+  "hc2" = tte_arm_design (hazard_event = 0.0525, hazard_dropout = 0.05/1.5, hazard_switch = 0.1/1.5, n_patients=3000, patient_design = pat3),
+  "hc3" = tte_arm_design (hazard_event = 0.0525, hazard_dropout = 0.05/1.5, hazard_switch = 0.1/1.5, n_patients=3000, patient_design = pat4)
 )
 
 trial_design <- tte_trial_design (
@@ -33,4 +33,4 @@ trial_design <- tte_trial_design (
   max_events = NULL  # stopping criterion, can be implemented later as well
 )
 
-tte_run_power_analysis (trial_design, n_sim, max_events=572, name="scen2a")
+tte_run_power_analysis (trial_design, n_sim, max_events=572, name="scen2b")
