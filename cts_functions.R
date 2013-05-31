@@ -10,7 +10,12 @@ require("foreach")
 require("doMC")
 registerDoMC(4)
 require(Rcpp)
-sourceCpp("tte_sim_patient.cpp")
+if (file.exists("../tte_sim_patient.cpp")) {
+  sourceCpp("../tte_sim_patient.cpp")
+}
+if (file.exists("tte_sim_patient.cpp")) {
+  sourceCpp("tte_sim_patient.cpp")
+}
 
 ###########################################################################
 ## Functions to define enrollmenet, patients, trials, power analysis
@@ -187,6 +192,7 @@ tte_sim_trial <- function (trial_design) {
     }
     colnames(tmp) <- c("arm_name","patient","time","event","dropout","switch","arm","offset")
     tmp <- tmp[!is.na(tmp$time),]
+    tmp$arm_name <- arm_names[i]
     return(tmp)
   }
   # remove patient enrolled after the max_events were reached:

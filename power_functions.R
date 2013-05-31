@@ -11,8 +11,7 @@ do_tests <- function (event_dat) {
   p_vals <- 1-c(pchisq(t1$chisq, 1), pchisq(t2a$chisq, 1), pchisq(t2b$chisq, 1), pchisq(t2c$chisq, 1))
 }
 
-tte_run_power_analysis <- function (trial_design, n_sim, max_events=572, name="scen1", write_csv = TRUE) {
-  n_sim <- 200
+tte_run_power_analysis <- function (trial_design, n_sim = 200, max_events=572, name="scen1", write_csv = TRUE) {
   comb <- c()
   comb_stop <- c()
   for (i in 1:n_sim) {
