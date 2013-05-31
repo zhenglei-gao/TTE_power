@@ -5,7 +5,6 @@
 ##               plots and summaries.
 ##               The source files will eventually be made into an R-module
 
-#setwd("..")
 source ("cts_functions.R")   # the main simulation engine
 source ("power_functions.R") # the functions for the statistical test and power analysis
 source ("plot_functions.R")  # plotting & summarizing functions
@@ -18,7 +17,7 @@ pat4 <- tte_patient_design (arm_start = 4) # hc3
 
 ## Create an object describing the enrollment
 enrollment_design <- tte_enrollment_design ( 
-  enrollment_rate  = rep(3000/(365/2), 4)   # enrollment rates in all arms (per day); all patients enrolled in 6 months
+  enrollment_rate  = rep( 3000/(365/2), 4)   # enrollment rates in all arms (per day); all patients enrolled in 6 months
 )
 
 arm_design <- list (
@@ -37,11 +36,11 @@ trial_design <- tte_trial_design (
 )
 
 ## simulate trial
-registerDoMC(4)
-source ("cts_functions.R")   # the main simulation engine
+registerDoMC(4) 
 system.time(
   dat <- tte_sim_trial (trial_design)
 )
+
 dat_stop <- apply_stopping_criterion(dat, max_events=572)
 
 ## summarize 
@@ -56,10 +55,6 @@ event_dat_stop <- extract_event_data(dat_stop)
 ## then calculate the kaplan meier estimators and make a plot
 fit <- survfit(Surv(time, event) ~ arm, data=event_dat)
 gg_surv_plot (fit, arms = c("Control", "HC 1", "HC 2", "HC 3"), pct=TRUE, 
-              show_ci=c(1,0,0,0)) + ylab ("% HIV negative") + ylim (c(90,100))
-
-fit_stop <- survfit(Surv(time, event) ~ arm, data=event_dat_stop)
-gg_surv_plot (fit_stop, arms = c("Control", "HC 1", "HC 2", "HC 3"), pct=TRUE, 
               show_ci=c(1,0,0,0)) + ylab ("% HIV negative") + ylim (c(90,100))
 
 ## Make a plot of enrollment

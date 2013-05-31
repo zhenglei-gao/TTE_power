@@ -33,3 +33,4 @@ trial_design <- tte_trial_design (
 )
 
 tte_run_power_analysis (trial_design, n_sim, max_events=572, name="scen1b")
+

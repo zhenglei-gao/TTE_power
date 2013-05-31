@@ -56,3 +56,34 @@ NumericMatrix sim_patient_core_Cpp (NumericMatrix sim_p, NumericVector times, Nu
   }
   return sim_p;
 }
+
+// R original function (note: arguments are not exactly the same)
+//sim_patient_core_R <- function (sim_p, pat_haz, arms, arm_current, cov_effects) {
+//  switched <- 0 
+//  pat_haz <- haz_table[arm_current,]
+//  pat_haz_eff <- pat_haz * cov_effects
+//  for (i in 2:length(sim_p$time)) { # can't do apply since hazard might change over time
+//    dtime <- sim_p$time[i] - sim_p$time[i-1]
+//    sim_p[i,2:4] <- (runif(3) < c(1-1*exp(-pat_haz_eff * dtime/365)))*1    
+//    sim_p[i,5] <- arm_current
+//    if (sum(sim_p[i,2:4]) > 0) { # something happened
+//      if (sim_p[i,]$dropout == 1) {
+//        sim_p <- sim_p[1:i,]
+//        sim_p[i:length(sim_p$time), c(2,4)] <- -1
+//        break
+//      }
+//      if (sim_p[i,]$event == 1) {
+//        sim_p <- sim_p[1:i,]
+//        sim_p[i:length(sim_p$time), c(3,4)] <- -1
+//        break
+//      }
+//      if ((sim_p[i,]$switch == 1)&&(switched == 0)) {
+//        arm_current <- arms[-arm_current][round(runif(1)*length(arms[-arm_current])+0.5)] # switch to another arm     
+//        pat_haz <- haz_table[arm_current,]
+//        pat_haz_eff <- pat_haz * cov_effects
+//        switched <- 1
+//      }
+//    }
+//  }
+//  return(sim_p)
+//}

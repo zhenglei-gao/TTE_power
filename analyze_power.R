@@ -1,5 +1,4 @@
-## analyze results from the power analysis
-## (for run1a)
+# analyze results from the power analysis
 require(reshape)
 
 csv1 <- rbind(read.csv(file="scen1.csv"), read.csv(file="scen1b.csv"))
@@ -11,14 +10,6 @@ csv1_m <- melt(csv1)
 csv1s_m <- melt(csv1_stop)
 
 cols <- c("#444499","#994444","#994444","#994444")
-
-## Boxplot & power calculation
-tte_boxplot_power (csv1_m)
-calc_power(csv1)
-calc_power(csv1_stop)
-
-####################################################
-## Old versions of plots 
 
 # histogram
 ggplot(csv1_m, aes(x=log(value), group=variable, colour=variable, fill=variable)) + 
@@ -61,3 +52,5 @@ ggplot(csv1s_m, aes(y=log(value), x=variable, colour=variable, fill=NULL)) +
   annotate(geom="text", x=4.4, y=log(.05*1.4), label="0.05", colour="#444444", size=4) +
   annotate(geom="text", x=4.4, y=log(.017*1.4), label="0.017", colour="#444444", size=4) 
   
+calc_power(csv1)
+calc_power(csv1_stop)
