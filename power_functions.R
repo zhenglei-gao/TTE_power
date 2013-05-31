@@ -1,3 +1,11 @@
+
+get_scen_data <- function (scen = "scen1") {
+  csv <- read.csv(file=paste(scen, ".csv", sep=""))
+  colnames(csv) <- c("Test combined", "Test HC1", "Test HC2", "Test HC3")
+  csv_m <- melt(csv)
+  return(csv_m)
+}
+
 do_tests <- function (event_dat) {
   ## first approach: merge the test arms
   t1 <- survdiff(Surv(time, event) ~ arm_type, data=event_dat) # merged test-arms
