@@ -5,7 +5,7 @@ using namespace Rcpp;
 NumericMatrix sim_patient_core_Cpp (NumericMatrix sim_p, NumericVector times, NumericMatrix haz_table,
                                     int arm_current, int n_arms, NumericVector cov_effects) {
   int switched = 0; 
-  NumericVector pat_haz = { haz_table(arm_current-1, _) };
+  NumericVector pat_haz = haz_table( (arm_current-1), _) ;
   NumericVector pat_haz_eff = NumericVector::create (0, 0, 0) ;
   int sth_happened = 0;
   for (int i = 0; i < 3; ++i){
