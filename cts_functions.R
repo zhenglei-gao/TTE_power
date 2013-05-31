@@ -111,19 +111,19 @@ tte_sim_patient <- function (patient_design,
     haz_table[i,] <- unlist(trial_design$arm_design[[i]][1:3])
   }
   cov_effects <- apply_covariate_effects(patient_design$binary_covariates)
-  col_names <- colnames(sim_p)
-  #sim_p <- sim_patient_core_R (sim_p, haz_table, arms, arm_current, cov_effects)
-  sim_p <- sim_patient_core_Cpp (as.matrix(sim_p), 
-                          as.vector(trial_design$visits), 
-                          as.matrix(haz_table), 
-                          as.integer(arm_current), as.integer(length(arms)), as.vector(cov_effects))
-  colnames(sim_p) <- col_names
+  #col_names <- colnames(sim_p)
+  sim_p <- sim_patient_core_R (sim_p, haz_table, arms, arm_current, cov_effects)
+  #sim_p <- sim_patient_core_Cpp (as.matrix(sim_p), 
+  #                        as.vector(trial_design$visits), 
+  #                        as.matrix(haz_table), 
+  #                        as.integer(arm_current), as.integer(length(arms)), as.vector(cov_effects))
+  #colnames(sim_p) <- col_names
   sim_p <- data.frame(sim_p)
   sim_p$time <- sim_p$time + offset
   return(sim_p)  
 }
 
-sim_patient_core_R <- function (sim_p, pat_haz, arms, arm_current, cov_effects) {
+sim_patient_core_R <- function (sim_p, haz_table, arms, arm_current, cov_effects) {
   switched <- 0 
   pat_haz <- haz_table[arm_current,]
   pat_haz_eff <- pat_haz * cov_effects
