@@ -11,9 +11,11 @@ require("doMC")
 registerDoMC(4)
 require(Rcpp)
 if (file.exists("../tte_sim_patient.cpp")) {
+  source("../tte_sim_patient.R")
   sourceCpp("../tte_sim_patient.cpp")
 }
 if (file.exists("tte_sim_patient.cpp")) {
+  source("tte_sim_patient.R")
   sourceCpp("tte_sim_patient.cpp")
 }
 
@@ -112,7 +114,8 @@ tte_sim_patient <- function (patient_design,
   }
   cov_effects <- apply_covariate_effects(patient_design$binary_covariates)
   #col_names <- colnames(sim_p)
-  sim_p <- sim_patient_core_R (sim_p, haz_table, arms, arm_current, cov_effects)
+#  sim_p <- sim_patient_core_R (sim_p, haz_table, arms, arm_current, cov_effects)
+  sim_p <- sim_patient_core_vectorized_R (sim_p, haz_table, arms, arm_current, cov_effects)
   #sim_p <- sim_patient_core_Cpp (as.matrix(sim_p), 
   #                        as.vector(trial_design$visits), 
   #                        as.matrix(haz_table), 
@@ -121,36 +124,6 @@ tte_sim_patient <- function (patient_design,
   sim_p <- data.frame(sim_p)
   sim_p$time <- sim_p$time + offset
   return(sim_p)  
-}
-
-sim_patient_core_R <- function (sim_p, haz_table, arms, arm_current, cov_effects) {
-  switched <- 0 
-  pat_haz <- haz_table[arm_current,]
-  pat_haz_eff <- pat_haz * cov_effects
-  for (i in 2:length(sim_p$time)) { # can't do apply since hazard might change over time
-    dtime <- sim_p$time[i] - sim_p$time[i-1]
-    sim_p[i,2:4] <- (runif(3) < c(1-1*exp(-pat_haz_eff * dtime/365)))*1    
-    sim_p[i,5] <- arm_current
-    if (sum(sim_p[i,2:4]) > 0) { # something happened
-      if (sim_p[i,]$dropout == 1) {
-        sim_p <- sim_p[1:i,]
-        sim_p[i:length(sim_p$time), c(2,4)] <- -1
-        break
-      }
-      if (sim_p[i,]$event == 1) {
-        sim_p <- sim_p[1:i,]
-        sim_p[i:length(sim_p$time), c(3,4)] <- -1
-        break
-      }
-      if ((sim_p[i,]$switch == 1)&&(switched == 0)) {
-        arm_current <- arms[-arm_current][round(runif(1)*length(arms[-arm_current])+0.5)] # switch to another arm     
-        pat_haz <- haz_table[arm_current,]
-        pat_haz_eff <- pat_haz * cov_effects
-        switched <- 1
-      }
-    }
-  }
-  return(sim_p)
 }
 
 ## Create an object describing the enrollment
@@ -229,13 +202,14 @@ extract_event_data <- function (sim_data,
       c(time, event, arm)
     )
   }
-  time_after_start <- function(d) {
-    d$time <- d$time - min(d$time)
-    return(d)
-  }
+#   time_after_start <- function(d) {
+#     d$time <- d$time - min(d$time)
+#     return(d)
+#   }
   sim_data <- sim_data[sim_data$time <= until_time,]
   sim_data$grp <- paste(sim_data$arm_name, sim_data$patient, sep="")
-  sim_data <- ddply (sim_data, "grp", time_after_start)
+#  sim_data <- ddply (sim_data, "grp", time_after_start)
+  sim_data$time <- sim_data$time - sim_data$offset
   event_dat <- ddply (sim_data, "grp", get_event_time)
   colnames(event_dat) <- c("patient", "time","event","arm")
   event_dat$arm <- factor(event_dat$arm)

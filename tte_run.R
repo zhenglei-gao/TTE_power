@@ -37,6 +37,8 @@ trial_design <- tte_trial_design (
 
 ## simulate trial
 registerDoMC(4) 
+source("../cts_functions.R")
+
 system.time(
   dat <- tte_sim_trial (trial_design)
 )
