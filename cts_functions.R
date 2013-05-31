@@ -9,16 +9,15 @@ require("iterators")
 require("foreach")
 require("doMC")
 registerDoMC(4)
-require("Rcpp")
-sourceCpp("../tte_sim_patient.cpp")
+require(Rcpp)
+sourceCpp("tte_sim_patient.cpp")
 
 ###########################################################################
 ## Functions to define enrollmenet, patients, trials, power analysis
 ###########################################################################
 
-tte_patient_design <- function (arm_start = 1, 
-                                binary_covariates = NULL) { ## Create an object describing the patient
-  patient <- list("arm_start" = arm_start,
+tte_patient_design <- function (arm_start = 1, binary_covariates=list()) { ## Create an object describing the patient
+  patient <- list("arm_start" = arm_start, 
                   "binary_covariates" = binary_covariates)
   return(patient)
 }
@@ -80,27 +79,48 @@ tte_trial_design <- function (arm_design = list(),
 ###########################################################################
 ## Functions to simulate enrollmenet, patients, trials, power analysis
 ###########################################################################
-apply_covariate_effects <- function(patient_design) { 
-  cov_effects <- c(1,1,1)  
-  if (!is.null(patient_design$binary_covariates)) {
-    cov_names <- names(patient_design$binary_covariates)
-    for (i in seq(cov_names)) {
-      curr_cov <-  patient_design$binary_covariates[[cov_names[i]]] 
-      if (runif(1) < curr_cov$prob) {
-        cov_effects <- cov_effects * c(curr_cov$rr_hazard_event, curr_cov$rr_hazard_dropout, curr_cov$rr_hazard_switch) 
-        sim_p[[paste("cov_",cov_names[i],sep="")]] <- 1
-      } else {
-        sim_p[[paste("cov_",cov_names[i],sep="")]] <- 0
-      }
-    }
-  }
-  return(cov_effects)
-}  
 
-sim_patient_core_R <- function (sim_p, haz_table, arm_current, cov_effects) {
+apply_covariate_effects <- function (covariate_effects) {
+  eff <- c(1,1,1)
+  for (i in seq(covariate_effects)) {
+    if (runif(1) < covariate_effects[[i]]$prob) {
+      eff <- eff * c(covariate_effects[[i]]$rr_hazard_event, covariate_effects[[i]]$rr_hazard_dropout, covariate_effects[[i]]$rr_hazard_switch)
+    }
+  }  
+  return(eff)
+}
+
+tte_sim_patient <- function (patient_design, 
+                             trial_design,
+                             offset = 0
+                             ) { 
+  sim_p <- data.frame(cbind("time" = trial_design$visits, "event" = 0, "dropout" = 0, "switch" = 0, "arm" = patient_design$arm_start, "offset"=offset)) 
+  if (length(sim_p$time) < 2) {
+    cat ("Specify a trial design with at least two visits!\n\n")
+    return()    
+  }
+  arms <- 1:length(trial_design$arm_design)
+  arm_current <- patient_design$arm_start
+  haz_table <- matrix(ncol=3, nrow=length(trial_design$arm_design))
+  for (i in seq(trial_design$arm_design)) {
+    haz_table[i,] <- unlist(trial_design$arm_design[[i]][1:3])
+  }
+  cov_effects <- apply_covariate_effects(patient_design$binary_covariates)
+  col_names <- colnames(sim_p)
+  #sim_p <- sim_patient_core_R (sim_p, haz_table, arms, arm_current, cov_effects)
+  sim_p <- sim_patient_core_Cpp (as.matrix(sim_p), 
+                          as.vector(trial_design$visits), 
+                          as.matrix(haz_table), 
+                          as.integer(arm_current), as.integer(length(arms)), as.vector(cov_effects))
+  colnames(sim_p) <- col_names
+  sim_p <- data.frame(sim_p)
+  sim_p$time <- sim_p$time + offset
+  return(sim_p)  
+}
+
+sim_patient_core_R <- function (sim_p, pat_haz, arms, arm_current, cov_effects) {
   switched <- 0 
-  arms <- 1:length(haz_table[,1])
-  pat_haz <- unlist(haz_table[arm_current,] )
+  pat_haz <- haz_table[arm_current,]
   pat_haz_eff <- pat_haz * cov_effects
   for (i in 2:length(sim_p$time)) { # can't do apply since hazard might change over time
     dtime <- sim_p$time[i] - sim_p$time[i-1]
@@ -119,49 +139,13 @@ sim_patient_core_R <- function (sim_p, haz_table, arm_current, cov_effects) {
       }
       if ((sim_p[i,]$switch == 1)&&(switched == 0)) {
         arm_current <- arms[-arm_current][round(runif(1)*length(arms[-arm_current])+0.5)] # switch to another arm     
-        cov_effects <- c(1,1,1)
-        pat_haz <- unlist(haz_table[arm_current,] )
+        pat_haz <- haz_table[arm_current,]
         pat_haz_eff <- pat_haz * cov_effects
-        #sim_p[i,5] <- arm_current
         switched <- 1
       }
     }
   }
-  return (sim_p)
-}
-
-tte_sim_patient <- function (patient_design, 
-                             trial_design,
-                             offset = 0
-                             ) { 
-  sim_p <- data.frame(cbind("time" = trial_design$visits, "event" = 0, "dropout" = 0, "switch" = 0, "arm" = patient_design$arm_start, "offset"=offset)) 
-  if (length(sim_p$time) < 2) {
-    cat ("Specify a trial design with at least two visits!\n\n")
-    return()    
-  }
-  arms <- 1:length(trial_design$arm_design)
-  haz_table <- matrix(nrow=length(arms), ncol=3)
-  for (i in seq(names(trial_design$arm_design))) {
-    haz_table[i,1:3] <- unlist(trial_design$arm_design[[names(trial_design$arm_design)[i]]][1:3])
-  }
-    
-  ## this part ported to C++ 
-  c_names <- colnames(sim_p)
-  sim_p <- sim_patient_core_R (sim_p, 
-                               haz_table = haz_table, 
-                               arm_current = patient_design$arm_start, 
-                               cov_effects = apply_covariate_effects(patient_design))
-#    sim_p <- sim_patient_core_Cpp (as.matrix(sim_p), 
-#                                  sim_p$time,
-#                                  haz_table = haz_table,
-#                                  arm_current = as.integer(patient_design$arm_start), 
-#                                  n_arms = as.integer(length(arms)),
-#                                  cov_effects = apply_covariate_effects(patient_design))
-  ## /C++
-  colnames(sim_p) <- c_names
-  sim_p <- data.frame(sim_p)
-  sim_p$time <- sim_p$time + offset
-  return(sim_p)  
+  return(sim_p)
 }
 
 ## Create an object describing the enrollment
@@ -188,27 +172,23 @@ tte_sim_trial <- function (trial_design) {
   # Simulate the trial
   arm_names <- names(trial_design$arm_design)
   dat <- foreach (i=seq(arm_names), .combine=rbind) %dopar% {
-    n_pat <- arm_design[[arm_names[i]]]$n_patients
+    n_patients <- arm_design[[arm_names[i]]]$n_patients
     n_visits <- length(trial_design$visits)
-    tmp <- data.frame(matrix(ncol=8, nrow=n_pat*n_visits)) # creating matrix beforehand should be faster than doing repeated rbind
-    idx <- 1
-    for (j in 1:arm_design[[arm_names[i]]]$n_patients) {  
+    tmp <- data.frame(matrix(ncol=8, nrow=n_visits*n_patients))
+    for (j in 1:n_patients) {    
         tmp2 <- cbind(arm_name=arm_names[i], patient=j, 
                          tte_sim_patient (patient_design = arm_design[[arm_names[i]]]$patient_design,  
                                           trial_design = trial_design,  
-                                          offset = enrollment[[arm_names[i]]][j]) 
+                                          offset = enrollment[[arm_names[i]]][j] ) 
                    )
         l <- length(tmp2[,1])
+        idx <- (j-1)*n_visits + 1
         tmp[c(idx:(idx+l-1)), ] <- tmp2
-        idx <- idx+l
     }
-    tmp <- data.frame(tmp)
-    colnames(tmp) <- c("arm_name","patient","time", "event", "dropout", "switch", "arm", "offset")
-    tmp$arm_name <- arm_names[i]
+    colnames(tmp) <- c("arm_name","patient","time","event","dropout","switch","arm","offset")
+    tmp <- tmp[!is.na(tmp$time),]
     return(tmp)
   }
-  dat <- dat[!is.na(dat$time),]  
-  
   # remove patient enrolled after the max_events were reached:
   if (!is.null(trial_design$max_events)) {
     dat <- apply_stopping_criterion(dat, trial_design$max_events)
@@ -227,14 +207,11 @@ apply_stopping_criterion <- function (sim_data, max_events = 572) {
 }
 
 extract_event_data <- function (sim_data, 
-                                until_time = NULL,
+                                until_time = 365*2,
                                 control_arm = 1) {
-  if (is.null(until_time)) {
-    until_time <- max(sim_data$time)
-  }
   get_event_time <- function (d) {
     event <- 0 # censored
-    last <- d[d$time == max(d$time),]
+    last <- d[d$time == max(d$time),] 
     arm <- d[1,]$arm # intention-to-treat, don't use last arm!
     time <- last$time
     if (last$event == 1) {
@@ -246,9 +223,13 @@ extract_event_data <- function (sim_data,
       c(time, event, arm)
     )
   }
+  time_after_start <- function(d) {
+    d$time <- d$time - min(d$time)
+    return(d)
+  }
   sim_data <- sim_data[sim_data$time <= until_time,]
   sim_data$grp <- paste(sim_data$arm_name, sim_data$patient, sep="")
-  sim_data$time <- sim_data$time - sim_data$offset
+  sim_data <- ddply (sim_data, "grp", time_after_start)
   event_dat <- ddply (sim_data, "grp", get_event_time)
   colnames(event_dat) <- c("patient", "time","event","arm")
   event_dat$arm <- factor(event_dat$arm)
