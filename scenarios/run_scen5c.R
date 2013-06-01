@@ -5,7 +5,7 @@ source ("../cts_functions.R")   # the main simulation engine
 source ("../power_functions.R") # the functions for the statistical test and power analysis
 source ("../plot_functions.R")  # plotting & summarizing functions
 
-registerDoMC(1)
+# registerDoMC(1)
 
 ## patient object
 bin_cov_control <- list (condom = list (prob = 0, rr_hazard_event = 1, rr_hazard_dropout = 1, rr_hazard_switch = 1))
@@ -36,4 +36,4 @@ trial_design <- tte_trial_design (
   max_events = NULL  # stopping criterion, can be implemented later as well
 )
 
-tte_run_power_analysis (trial_design, n_sim=200, max_events=572, name="scen5c")
+tte_run_power_analysis (trial_design, n_sim=150, max_events=572, name="scen5c")

@@ -1,12 +1,12 @@
 ## implement the power analysis
 ## Scenario 3: condom use, with 5% dropout in test cohorts
 
-setwd("scenarios")
+#setwd("scenarios")
 source ("../cts_functions.R")   # the main simulation engine
 source ("../power_functions.R") # the functions for the statistical test and power analysis
 source ("../plot_functions.R")  # plotting & summarizing functions
 
-registerDoMC(4)
+# registerDoMC(1)
 
 ## patient object
 bin_cov_control <- list (condom = list (prob = 0, rr_hazard_event = 1, rr_hazard_dropout = 1, rr_hazard_switch = 1))

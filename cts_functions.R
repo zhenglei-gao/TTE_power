@@ -8,15 +8,16 @@ require("survival")
 require("iterators")
 require("foreach")
 require("doMC")
-registerDoMC(4)
-require(Rcpp)
+
+# registerDoMC(4)
+# require(Rcpp)
 if (file.exists("../tte_sim_patient.cpp")) {
   source("../tte_sim_patient.R")
-  sourceCpp("../tte_sim_patient.cpp")
+ # sourceCpp("../tte_sim_patient.cpp")
 }
 if (file.exists("tte_sim_patient.cpp")) {
   source("tte_sim_patient.R")
-  sourceCpp("tte_sim_patient.cpp")
+ # sourceCpp("tte_sim_patient.cpp")
 }
 
 ###########################################################################
