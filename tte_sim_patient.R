@@ -29,10 +29,12 @@ sim_patient_core_R <- function (sim_p, haz_table, arms, arm_current, cov_effects
 }
 
 sim_patient_core_vectorized_R <- function (sim_p, haz_table, arms, arm_current, cov_effects, switch_only_once = TRUE) {
-  switched <- FALSE
+ # haz_table[,1] <- c(0.3,0.4,0.5,0.6)
+#  haz_table[,2] <- c(0.4,0.5,0.6,0.7)
+#  haz_table[,3] <- c(0.2,0.3,0.4,0.5)
   pat_haz <- haz_table[arm_current,]
   pat_haz_eff <- pat_haz * cov_effects
-
+  
   # first determine switch times
   n_visits <- length(sim_p[,1])
   sim_p$dtime <- c(0, sim_p$time[2:n_visits] - sim_p$time[1:(n_visits-1)])
@@ -41,7 +43,6 @@ sim_patient_core_vectorized_R <- function (sim_p, haz_table, arms, arm_current, 
   sim_p$haz_s <- 1-exp(-pat_haz_eff[3] * sim_p$dtime/365) * cov_effects[3]
   switch_sim <- (runif(n_visits) < sim_p$haz_s)*1
   switch_times <- c(1:n_visits)[!is.na(match (switch_sim,1))]
-  #switch_times <- c(3,5)
   
   if (length(switch_times) > 0) {
     if (switch_only_once) { switch_times <- switch_times[1] }
@@ -49,7 +50,7 @@ sim_patient_core_vectorized_R <- function (sim_p, haz_table, arms, arm_current, 
     for (i in 1:length(switch_times)) {
       sim_p_tmp <- sim_p[c(switch_times[i]:n_visits),]  
       arm_current <- arms[-arm_current][round(runif(1)*length(arms[-arm_current])+0.5)] # switch to another arm     
-      sim_p_tmp$arm <- arm_current
+      sim_p_tmp$arm[-1] <- arm_current
       pat_haz <- haz_table[arm_current,]
       pat_haz_eff <- pat_haz * cov_effects
       sim_p_tmp$haz_e[-1] <- 1-exp(-pat_haz_eff[1] * sim_p_tmp$dtime/365)[-1] 
@@ -58,8 +59,9 @@ sim_patient_core_vectorized_R <- function (sim_p, haz_table, arms, arm_current, 
       sim_p[c(switch_times[i]:n_visits),] <- sim_p_tmp
     }
   }
+  
   ## then simulate dropout
-  dropout_sim <- (runif(n_visits) < sim_p$haz_d) * 1
+  dropout_sim <- (runif(n_visits) < sim_p[1:n_visits,]$haz_d) * 1
   dropout_time <- c(1:n_visits)[!is.na(match (dropout_sim,1))][1]
   if(!is.na(dropout_time)) {
     sim_p[dropout_time,c(2:4)] <- c(-1,1,-1)
@@ -67,16 +69,16 @@ sim_patient_core_vectorized_R <- function (sim_p, haz_table, arms, arm_current, 
   }
   
   ## then simulate events
-  l <- length(sim_p[,1])
-  if (l>1) {
-    event_sim <- (runif(l) < sim_p[1:l,]$haz_e) * 1
-    event_time <- c(1:n_visits)[!is.na(match (event_sim,1))][1]
-    if (!is.na(event_time)) {
-      if (sim_p[event_time,2] != -1) {
-        sim_p[event_time, c(2:4)] <- c(1,-1,-1)
-        sim_p <- sim_p[c(1:event_time),]
-      }
-    }
-  }
+   l <- length(sim_p$time)
+   event_sim <- (runif(l) < sim_p[c(1:l),]$haz_e) * 1
+   event_time <- c(1:l)[!is.na(match(event_sim,1))][1]
+   if(!is.na(event_time)) { 
+     if (sim_p[event_time,3] != 1) {
+       if (event_time > 1) { # for some reason I have to do this if statement, shouldn't be...
+         sim_p[event_time, c(2:4)] <- c(1,-1,-1)
+         sim_p <- sim_p[1:event_time,]
+       }
+     }
+   }
   return(sim_p[,c(1:6)])
 }

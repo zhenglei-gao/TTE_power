@@ -37,7 +37,7 @@ trial_design <- tte_trial_design (
 
 ## simulate trial
 registerDoMC(4) 
-source("../cts_functions.R")
+source("cts_functions.R")
 
 system.time(
   dat <- tte_sim_trial (trial_design)
@@ -59,13 +59,16 @@ fit <- survfit(Surv(time, event) ~ arm, data=event_dat)
 gg_surv_plot (fit, arms = c("Control", "HC 1", "HC 2", "HC 3"), pct=TRUE, 
               show_ci=c(1,0,0,0)) + ylab ("% HIV negative") + ylim (c(90,100))
 
+dat[dat$arm > 1 & dat$event==1 & dat$time < 90,]
+dat[dat$arm > 1 & dat$dropout==1 & dat$time < 90,]
+
 ## Make a plot of enrollment
 enr_dat <- extract_enrollment_data(dat)
 fit_enr <- survfit(Surv(time, event) ~ arm, data=enr_dat)
 gg_surv_plot(fit_enr, arms=c("Control", "HC 1", "HC 2", "HC 3"), y_val="surv", reverse=TRUE, pct=TRUE) + ylab ("% enrollment per arm") 
 
 ## do the logrank test
-test_res <- do_tests(event_dat)
+test_res <-   do_tests(event_dat)
 test_res_stop <- do_tests(event_dat_stop)
 
 

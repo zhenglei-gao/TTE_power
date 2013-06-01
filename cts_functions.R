@@ -116,6 +116,7 @@ tte_sim_patient <- function (patient_design,
   #col_names <- colnames(sim_p)
 #  sim_p <- sim_patient_core_R (sim_p, haz_table, arms, arm_current, cov_effects)
   sim_p <- sim_patient_core_vectorized_R (sim_p, haz_table, arms, arm_current, cov_effects)
+  
   #sim_p <- sim_patient_core_Cpp (as.matrix(sim_p), 
   #                        as.vector(trial_design$visits), 
   #                        as.matrix(haz_table), 
@@ -207,7 +208,7 @@ extract_event_data <- function (sim_data,
 #     return(d)
 #   }
   sim_data <- sim_data[sim_data$time <= until_time,]
-  sim_data$grp <- paste(sim_data$arm_name, sim_data$patient, sep="")
+  sim_data$grp <- paste(sim_data$arm_name, "_", sim_data$patient, sep="")
 #  sim_data <- ddply (sim_data, "grp", time_after_start)
   sim_data$time <- sim_data$time - sim_data$offset
   event_dat <- ddply (sim_data, "grp", get_event_time)
