@@ -17,7 +17,7 @@ enrollment_design <- tte_enrollment_design (
   enrollment_rate  = c(3000/(365*.5), 
                        3000/(365*1.5), 
                        3000/(365*1.5), 
-                       3000/(365*.5)   # enrollment rates in all arms (per day); all patients enrolled in 6 months
+                       3000/(365*.5))   # enrollment rates in all arms (per day); all patients enrolled in 6 months
 )
 
 arm_design <- list (
