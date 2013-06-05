@@ -36,4 +36,4 @@ trial_design <- tte_trial_design (
   max_events = NULL  # stopping criterion, can be implemented later as well
 )
 
-tte_run_power_analysis (trial_design, n_sim=200, max_events=572, name="scen3c")
+tte_run_power_analysis (trial_design, n_sim=150, max_events=572, name="scen3c")

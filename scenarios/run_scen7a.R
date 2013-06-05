@@ -8,12 +8,10 @@ source ("../plot_functions.R")  # plotting & summarizing functions
 # registerDoMC(1)
 
 ## patient object
-bin_cov_control <- list (condom = list (prob = 0, rr_hazard_event = 1, rr_hazard_dropout = 1, rr_hazard_switch = 1))
-bin_cov <- list (condom = list (prob = 0.1, rr_hazard_event = 0, rr_hazard_dropout = 1, rr_hazard_switch = 1))
-pat1 <- tte_patient_design (arm_start = 1, binary_covariates = bin_cov_control)
-pat2 <- tte_patient_design (arm_start = 2, binary_covariates = bin_cov)
-pat3 <- tte_patient_design (arm_start = 3, binary_covariates = bin_cov) 
-pat4 <- tte_patient_design (arm_start = 4, binary_covariates = bin_cov) 
+pat1 <- tte_patient_design (arm_start = 1)
+pat2 <- tte_patient_design (arm_start = 2)
+pat3 <- tte_patient_design (arm_start = 3) 
+pat4 <- tte_patient_design (arm_start = 4) 
 # implement a check that covariates are defined for all groups equally!!
 
 ## Create an object describing the enrollment
@@ -36,4 +34,4 @@ trial_design <- tte_trial_design (
   max_events = NULL  # stopping criterion, can be implemented later as well
 )
 
-tte_run_power_analysis (trial_design, n_sim=150, max_events=572, name="scen7a")
+tte_run_power_analysis (trial_design, n_sim=300, max_events=572, name="scen7a")

@@ -1,10 +1,72 @@
 require(ggplot2)
 
-extract_enrollment_data <- function (dat) {
+plot_scenario <- function (scen_info = list(), 
+                           smooth = TRUE,
+                           lm_fit = FALSE, 
+                           add_stop_crit = TRUE, 
+                           parametric = FALSE, # parametric power estimate?
+                           pdf = NULL) {
+  cols <- c("#444499", "#994444", "#444499", "#994444")
+  linetypes <- c(1, 1, 3, 3)
+  ncol <- 5
+  if (add_stop_crit) { ncol <- 9 }
+  res <- data.frame(matrix(ncol=ncol , nrow=length(scen_info$pl_dat$xval)))
+  for (i in seq(scen_info$pl_dat[,1])) {
+    csv_tmp <- read.csv(file=paste(scen_info$folder, "/scen", scen_info$pl_dat[i,]$file, ".csv", sep=""))
+    res[i,c(2:5)] <- as.num(unlist(calc_power(csv_tmp)) )
+    res[i,1] <- as.num(scen_info$pl_dat[i,]$xval)
+  }
+  if (add_stop_crit) {
+    for (i in seq(scen_info$pl_dat[,1])) {
+      csv_tmp <- read.csv(file=paste(scen_info$folder, "/scen", scen_info$pl_dat[i,]$file, "_stop.csv", sep=""))
+      res[i,c(6:9)] <- as.num(unlist(calc_power(csv_tmp)) )
+    }
+  }
+  col_nams <- c("x_var", "method 1", "method 2", "method 1 param", "method 2 param")
+  if (add_stop_crit) { 
+    col_nams <- c(col_nams, paste(col_nams[2:5], "+ stop"))  
+    colnames(res) <- col_nams
+    if (parametric) {    
+      res_m <- melt(res, id=c("x_var"), meas=c("method 1 param", "method 2 param", "method 1 param + stop", "method 2 param + stop"))
+    } else {  
+      res_m <- melt(res, id=c("x_var"), meas=c("method 1", "method 2", "method 1 + stop", "method 2 + stop"))
+    }
+  } else {
+    colnames(res) <- col_nams
+    if (parametric) {    
+      res_m <- melt(res, id=c("x_var"), meas=c("method 1 param","method 2 param"))
+    } else {  
+      res_m <- melt(res, id=c("x_var"), meas=c("method 1","method 2"))
+    }
+  }
+  pl <- ggplot (res_m, aes(x=x_var, y=value*100, colour=variable, group=variable)) +
+    scale_colour_manual("", values=cols) +
+    scale_linetype_manual ("", values=linetypes) +
+    ylim(c(0,100)) + 
+    ylab("Power") +
+    xlab(scen_info$xlab) 
+  if (smooth) {
+    pl <- pl + geom_smooth(size = 1.25, fill=NA, span=3, aes(linetype=variable))
+  } else {
+    pl <- pl + geom_line(size=1.25, aes(linetype=variable))    
+  }
+  if (lm_fit) {
+    pl <- pl + geom_smooth(method="lm", fill=NA, linetype=3) 
+  }
+  if (!is.null(pdf)) {
+    pdf(file=pdf)
+    print(pl)
+    dev.off()
+  }
+  return(pl)
+}
+
+extract_enrollment_data <- function (dat, trial_stop_time = 1.5*365) {
   extract_enrollment_function <- function (d) {
     return(c(min(d$time), d$arm[1]))
   }
-  dat$grp <- paste(dat$arm_name, dat$patient, sep="_")
+  dat <- dat[dat$time <= trial_stop_time,]
+  dat$grp <- paste(dat$arm, dat$patient, sep="_")
   enr_dat <- ddply (dat, "grp", extract_enrollment_function)[-1]
   colnames(enr_dat) <- c("time","arm")
   enr_dat <- enr_dat[order(enr_dat$arm, enr_dat$time),]
@@ -34,13 +96,15 @@ gg_surv_plot <- function (fit, arms=NULL, y_val = "surv",
                           surv=fit$surv,
                           upper=fit$upper, 
                           lower=fit$lower))
+  dat$cum.event <- 0
+  dat <- ddply(dat, "arm", function (d) { d$cum.event <- 1:length(d$cum.event); d } )
+  if (is.null(arms)) {
+    arms <- unique(pl_dat$arm)
+  }
   if (y_val == "surv") {
     pl_dat <- ddply (dat, "arm", gg_format_survfit)
   } else {
     pl_dat <- dat
-  }
-  if (is.null(arms)) {
-    arms <- unique(pl_dat$arm)
   }
   pl_dat$arm_name <- factor(pl_dat$arm, labels=arms)
   pl_dat$y_val <- pl_dat[[y_val]]

@@ -38,9 +38,9 @@ sim_patient_core_vectorized_R <- function (sim_p, haz_table, arms, arm_current, 
   # first determine switch times
   n_visits <- length(sim_p[,1])
   sim_p$dtime <- c(0, sim_p$time[2:n_visits] - sim_p$time[1:(n_visits-1)])
-  sim_p$haz_e <- 1-exp(-pat_haz_eff[1] * sim_p$dtime/365) * cov_effects[1]
-  sim_p$haz_d <- 1-exp(-pat_haz_eff[2] * sim_p$dtime/365) * cov_effects[2]
-  sim_p$haz_s <- 1-exp(-pat_haz_eff[3] * sim_p$dtime/365) * cov_effects[3]
+  sim_p$haz_e <- 1-exp(-pat_haz_eff[1] * sim_p$dtime/365) 
+  sim_p$haz_d <- 1-exp(-pat_haz_eff[2] * sim_p$dtime/365)
+  sim_p$haz_s <- 1-exp(-pat_haz_eff[3] * sim_p$dtime/365)
   switch_sim <- (runif(n_visits) < sim_p$haz_s)*1
   switch_times <- c(1:n_visits)[!is.na(match (switch_sim,1))]
   

@@ -19,13 +19,18 @@ do_tests <- function (event_dat) {
   p_vals <- 1-c(pchisq(t1$chisq, 1), pchisq(t2a$chisq, 1), pchisq(t2b$chisq, 1), pchisq(t2c$chisq, 1))
 }
 
-tte_run_power_analysis <- function (trial_design, n_sim = 200, max_events=572, name="scen1", write_csv = TRUE) {
+tte_run_power_analysis <- function (trial_design, 
+                                    n_sim = 200, 
+                                    trial_stop_time = 1.5 * 365,
+                                    max_events=572, 
+                                    name="scen1", 
+                                    write_csv = TRUE) {
   comb <- c()
   comb_stop <- c()
   for (i in 1:n_sim) {
     dat <- tte_sim_trial (trial_design)
     dat_stop <- apply_stopping_criterion(dat, max_events=max_events)
-    event_dat <- extract_event_data(dat)
+    event_dat <- extract_event_data(dat, until_time=trial_stop_time)
     test_res <- do_tests(event_dat)
     event_dat_stop <- extract_event_data(dat_stop)
     test_res_stop <- do_tests(event_dat_stop)  

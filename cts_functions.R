@@ -188,7 +188,7 @@ apply_stopping_criterion <- function (sim_data, max_events = 572) {
 }
 
 extract_event_data <- function (sim_data, 
-                                until_time = 365*2,
+                                until_time = 365*1.5,
                                 control_arm = 1) {
   get_event_time <- function (d) {
     event <- 0 # censored
